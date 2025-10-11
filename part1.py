@@ -1,6 +1,21 @@
 import GAinspector
 #import numpy as np
 from utils import *
+from random import randint, randrange, random, sample
+import os
+import tempfile
+import csv
+import statistics
+import matplotlib.pyplot as plt 
+from collections import defaultdict
+
+    
+POP_SIZE = 5000
+CROSS_RATE = 0.7
+MUTATION_RATE = 0.001
+N_RUNS = 50
+CSV_PATH = "five_runs_avg_over_time.csv"
+PNG_OUT = "five_runs_avg_over_time.png"
 
 def randomGenome(length):
     """
@@ -8,7 +23,13 @@ def randomGenome(length):
     :return: string, random binary digit
     """
     """Your Code Here"""
-    raiseNotDefined()
+    result = 0
+    for i in range(0, length):
+        result = result | (randint(0, 1) << i)
+    result = bin(result)[2:]
+    result = result.zfill(length)  # Pad with leading zeros to ensure correct length
+    return result
+        
 
 
 def makePopulation(size, length):
@@ -19,25 +40,27 @@ def makePopulation(size, length):
     """
 
     """Your Code Here"""
-
-    raiseNotDefined()
-
+    population = []
+    for i in range(size):
+        population.append(randomGenome(length))
+    return(population)
 
 def fitness(genome):
     """
     :param genome: 
     :return: the fitness value of a genome
     """
-
-
-    raiseNotDefined()
+    return(genome.count("1"))
 
 def evaluateFitness(population):
     """
     :param population: 
     :return: a pair of values: the average fitness of the population as a whole and the fitness of the best individual in the population.
     """
-    raiseNotDefined()
+    fitnesses = [0 for _ in range(len(population))]
+    for i in range(len(population)):
+        fitnesses[i] = fitness(population[i])
+    return((sum(fitnesses) / len(fitnesses)), max(fitnesses))
 
 
 
@@ -47,7 +70,11 @@ def crossover(genome1, genome2):
     :param genome2:
     :return: two new genomes produced by crossing over the given genomes at a random crossover point.
     """
-    raiseNotDefined()
+    crossPoint = randrange(1, len(genome1))
+    child1 = genome1[:crossPoint] + genome2[crossPoint:]
+    child2 = genome2[:crossPoint] + genome1[crossPoint:]
+
+    return (child1, child2)
 
 
 def mutate(genome, mutationRate):
@@ -56,7 +83,16 @@ def mutate(genome, mutationRate):
     :param mutationRate:
     :return: a new mutated version of the given genome.
     """
-    raiseNotDefined()
+    new_genome = ""
+    for bit in genome:
+        if random() < mutationRate:
+            if bit == '0':
+                new_genome += "1"
+            else:
+                new_genome += "0"
+        else:
+            new_genome += bit
+    return(new_genome)
 
 def selectPair(population):
     """
@@ -65,9 +101,14 @@ def selectPair(population):
     :return: two genomes from the given population using fitness-proportionate selection.
     This function should use weightedChoice, which is available in the Utils File, as a helper function.
     """
-    raiseNotDefined()
+    weights = []
+    for genome in population:
+        weights.append(fitness(genome))
+    result1 = weightedChoice(population, weights)
+    result2 = weightedChoice(population, weights)
+    return(result1,result2)
 
-def runGA(populationSize, crossoverRate, mutationRate, logFile=""):
+def runGA(populationSize, crossoverRate, mutationRate, logFile="", run_id=""):
     """
 
     :param populationSize: :param crossoverRate: :param mutationRate: :param logFile: :return: xt file in which to
@@ -76,21 +117,120 @@ def runGA(populationSize, crossoverRate, mutationRate, logFile=""):
     crossover rate (pc), and mutation rate (pm) as parameters. The optional logFile parameter is a string specifying
     the name of a te
     """
-    raiseNotDefined()
-
-
-
-
+    genome_length = 20
+    max_generations = 50
+    
+    print(f'Population size: {populationSize}')
+    print(f'Genome length: {genome_length}')
+    
+    population = makePopulation(populationSize, genome_length)
+    generations_log = []
+    solution = None
+    
+    for gen in range(max_generations):
+        avg, best = evaluateFitness(population)
+        generations_log.append((gen, avg, best))
+        print(f'Generation {gen}: average fitness {avg}, best fitness {best}')
+        
+        if(best == genome_length):
+            solution = gen
+            break
+        
+        new_population = []
+        
+        while len(new_population) < populationSize:
+            # select my pair to crossover
+            p1, p2 = selectPair(population)
+            
+            if random() < crossoverRate:
+                c1, c2 = crossover(p1, p2)
+            else:
+                c1, c2 = p1, p2
+            
+            c1 = mutate(c1, mutationRate)
+            c2 = mutate(c2, mutationRate)
+            
+            new_population.append(c1)
+            if len(new_population) < populationSize:
+                new_population.append(c2)
+                
+        population = new_population
+    
+        if logFile:
+            with open(logFile, "a") as f:
+                for g, a, b in generations_log:
+                    if run_id is not None:
+                        f.write(f'{run_id},{g},{a},{b}\n')
+                    else:
+                        f.write(f'{g},{a},{b}\n')
+    
+    return(solution)        
 
 if __name__ == '__main__':
     #Testing Code
-    print("Test Suite")
-    GAinspector.inspectFunction(randomGenome)
-    GAinspector.inspectFunction(makePopulation)
-    GAinspector.inspectFunction(fitness)
-    GAinspector.inspectFunction(evaluateFitness)
-    GAinspector.inspectFunction(crossover)
-    GAinspector.inspectFunction(mutate)
-    GAinspector.inspectFunction(selectPair)
+    # print("Test Suite")
+    # GAinspector.inspectFunction(randomGenome)
+    # GAinspector.inspectFunction(makePopulation)
+    # GAinspector.inspectFunction(fitness)
+    # GAinspector.inspectFunction(evaluateFitness)
+    # GAinspector.inspectFunction(crossover)
+    # GAinspector.inspectFunction(mutate)
+    # GAinspector.inspectFunction(selectPair)
 
-    #runGA(100, 0.7, 0.001, "run1.txt")
+    picked = set(sample(range(N_RUNS), 5))
+    
+    with open(CSV_PATH, "w", newline="") as out:
+        writer = csv.writer(out)
+        writer.writerow(["run_id", "generation", "avg_fitness", "best_fitness"])
+        
+    solutions = []
+    
+    for i in range(N_RUNS):
+        if i in picked:
+            sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE, logFile=CSV_PATH, run_id=i)
+        else:
+            sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE)
+        solutions.append(sol_gen)
+    
+    valid_solutions = [s for s in solutions if s is not None]
+    avg_gen = statistics.mean(valid_solutions) if valid_solutions else None
+    min_gen = min(valid_solutions) if valid_solutions else None
+    max_gen = max(valid_solutions) if valid_solutions else None
+    
+    print(f"Over {N_RUNS} runs (Population Size = {POP_SIZE}, Crossover Rate = {CROSS_RATE}, Mutation Rate = {MUTATION_RATE})")
+    print(f"Average generation found: {avg_gen}")
+    print(f"Min generation found: {min_gen}")
+    print(f"Max generation found: {max_gen}")
+    if len(valid_solutions) < N_RUNS:
+        print(f"{N_RUNS - len(valid_solutions)} runs did not reach all-ones within the cap")
+    
+    # Load CSV → group by run_id
+    series = defaultdict(lambda: {"gen": [], "avg": []})
+
+    with open(CSV_PATH, newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            run_id = int(row["run_id"])
+            gen    = int(row["generation"])
+            avg    = float(row["avg_fitness"])
+            series[run_id]["gen"].append(gen)
+            series[run_id]["avg"].append(avg)
+
+    # Sort each run’s points by generation (just in case)
+    for data in series.values():
+        zipped = sorted(zip(data["gen"], data["avg"]))
+        data["gen"], data["avg"] = map(list, zip(*zipped))
+
+    # Plot: one line per run (matplotlib default colors/styles)
+    plt.figure()
+    for run_id in sorted(series.keys()):
+        plt.plot(series[run_id]["gen"], series[run_id]["avg"], label=f"Run {run_id}")
+
+    plt.xlabel("Generation")
+    plt.ylabel("Average fitness")
+    plt.title("GA: Average fitness over time (5 randomly selected runs)")
+    plt.legend()
+    plt.tight_layout()
+    plt.grid(True)
+    plt.savefig(PNG_OUT, dpi=200)
+    plt.show()
