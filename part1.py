@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 
     
-POP_SIZE = 5000
-CROSS_RATE = 0.7
+POP_SIZE = 100
+CROSS_RATE = 0.07
 MUTATION_RATE = 0.001
 N_RUNS = 50
 CSV_PATH = "five_runs_avg_over_time.csv"

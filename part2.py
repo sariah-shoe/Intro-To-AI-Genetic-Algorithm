@@ -14,16 +14,25 @@ def sortByFitness(genomes):
     sortedGenomes = [g for (f, g) in tuples]
     return sortedGenomes, sortedFitnessValues
 
+def eval_and_sort(population):
+    scored = [(fitness(g), g) for g in population]
+    avg = sum(s for s, _ in scored) / len(scored)
+    scored.sort()  # ascending by fitness
+    best_fit, best_genome = scored[-1]
+    sortedGenomes = [g for _, g in scored]
+    sortedFitness = [s for s, _ in scored]
+    return avg, best_fit, best_genome, sortedGenomes, sortedFitness
+
 
 def randomGenome(length):
     """
     :param length:
     :return: string, random integers between 0 and 6 inclusive
     """
-
-    """Your Code Here"""
-    raiseNotDefined()
-
+    result = ""
+    for i in range(0, length):
+        result += str(random.randint(0,6))
+    return result
 
 
 def makePopulation(size, length):
@@ -32,10 +41,10 @@ def makePopulation(size, length):
     :param length - of genome
     :return: list of length size containing genomes of length length
     """
-
-
-    """Your Code Here"""
-    raiseNotDefined()
+    population = []
+    for i in range(size):
+        population.append(randomGenome(length))
+    return(population)
 
 def fitness(genome, steps=200, init=0.50):
     """
@@ -52,17 +61,33 @@ def fitness(genome, steps=200, init=0.50):
             raise Exception("strategy contains a bad character: '%s'" % char)
     if type(steps) is not int or steps < 1:
         raise Exception("steps must be an integer > 0")
-    if type(init) is str:
-        # init is a config file
-        rw.load(init)
-    elif type(init) in [int, float] and 0 <= init <= 1:
-        # init is a can density
-        rw.goto(0, 0)
-        rw.distributeCans(init)
-    else:
-        raise Exception("invalid initial configuration")
 
-    raiseNotDefined()
+    rewards = [0 for _ in range(25)]
+    rw.graphicsOff()
+    
+    for run in range(25):
+        # Reset my board state for each run
+        if type(init) is str:
+        # init is a config file
+            rw.load(init)
+        elif type(init) in [int, float] and 0 <= init <= 1:
+            # init is a can density
+            rw.distributeCans(init)
+            
+        x = random.randrange(rw.numRows)
+        y = random.randrange(rw.numCols)
+        rw.goto(x, y) 
+        
+        # Run my steps
+        for i in range(steps):
+            p = rw.getPerceptCode()
+            action = POSSIBLE_ACTIONS[int(genome[p])]
+            rewards[run] += rw.performAction(action)
+           
+    # Average and return my results
+    avg = sum(rewards) / len(rewards)
+    return(avg)
+            
 
 def evaluateFitness(population):
     """
@@ -70,7 +95,11 @@ def evaluateFitness(population):
     :return: a pair of values: the average fitness of the population as a whole and the fitness of the best individual
     in the population.
     """
-    raiseNotDefined()
+    fitnesses = [0 for _ in range(len(population))]
+    for i in range(len(population)):
+        fitnesses[i] = fitness(population[i])
+    return((sum(fitnesses) / len(fitnesses)), max(fitnesses))
+
 
 
 def crossover(genome1, genome2):
@@ -79,7 +108,11 @@ def crossover(genome1, genome2):
     :param genome2:
     :return: two new genomes produced by crossing over the given genomes at a random crossover point.
     """
-    raiseNotDefined()
+    crossPoint = random.randrange(1, len(genome1))
+    child1 = genome1[:crossPoint] + genome2[crossPoint:]
+    child2 = genome2[:crossPoint] + genome1[crossPoint:]
+    
+    return(child1, child2)
 
 
 def mutate(genome, mutationRate):
@@ -88,7 +121,13 @@ def mutate(genome, mutationRate):
     :param mutationRate:
     :return: a new mutated version of the given genome.
     """
-    raiseNotDefined()
+    new_genome = ""
+    for step in genome:
+        if random.random() < mutationRate:
+            new_genome += str(random.randint(0,6))
+        else:
+            new_genome += step
+    return(new_genome)
 
 def selectPair(population):
     """
@@ -97,7 +136,15 @@ def selectPair(population):
     :return: two genomes from the given population using fitness-proportionate selection.
     This function should use RankSelection,
     """
-    raiseNotDefined()
+    sortedGenomes, sortedFitness = sortByFitness(population)
+    n = len(sortedGenomes)
+    
+    weights = list(range(1, n+1))
+    
+    result1 = weightedChoice(sortedGenomes, weights)
+    result2 = weightedChoice(sortedGenomes, weights)
+    
+    return(result1,result2)
 
 
 def runGA(populationSize, crossoverRate, mutationRate, logFile=""):
@@ -109,7 +156,57 @@ def runGA(populationSize, crossoverRate, mutationRate, logFile=""):
     crossover rate (pc), and mutation rate (pm) as parameters. The optional logFile parameter is a string specifying
     the name of a te
     """
-    raiseNotDefined()
+    genome_length = 243
+    max_generations = 300
+    
+    print(f'Population size: {populationSize}')
+    print(f'Genome length: {genome_length}')
+    
+    population = makePopulation(populationSize, genome_length)
+    generations_log = []
+
+    best_so_far_fit = float("-inf")
+    best_so_far_strat = None
+    best_so_far_gen = None
+    
+    for gen in range(max_generations):
+        avg, best_fit, best_genome, sortedGenomes, sortedFitness = eval_and_sort(population)
+        print(f'Generation {gen}: average fitness {avg}, best fitness {best_fit}')
+        
+        if logFile and (gen % 10 == 0):
+            with open(logFile, "a") as f:
+                f.write(f"{best_so_far_gen},{best_so_far_fit},{best_so_far_strat}\n")
+        
+        generations_log.append((gen, avg, best_fit, best_genome))
+        
+        if best_fit > best_so_far_fit:
+            best_so_far_fit = best_fit
+            best_so_far_strat = best_genome
+            best_so_far_gen = gen
+            
+        if (gen % 20 == 0) and best_so_far_strat:
+            rw.demo(best_so_far_strat)
+
+        new_population = []
+        while len(new_population) < populationSize:
+            # select my pair to crossover
+            p1, p2 = selectPair(population)
+            
+            if random.random() < crossoverRate:
+                c1, c2 = crossover(p1, p2)
+            else:
+                c1, c2 = p1, p2
+            
+            c1 = mutate(c1, mutationRate)
+            c2 = mutate(c2, mutationRate)
+            
+            new_population.append(c1)
+            if len(new_population) < populationSize:
+                new_population.append(c2)
+                
+        population = new_population
+        
+    return(best_so_far_strat)    
 
 
 def test_FitnessFunction():
@@ -118,6 +215,8 @@ def test_FitnessFunction():
 
 
 
-#test_FitnessFunction()
+# test_FitnessFunction()
 
-#runGA(100, 1.0, 0.05)
+with open ("bestStrategy.csv", "w") as f:
+    f.write('Generation, Best Fitness, Best Genome\n')
+runGA(50, 1.0, 0.001,"bestStrategy.csv")
