@@ -2,12 +2,10 @@ import GAinspector
 #import numpy as np
 from utils import *
 from random import randint, randrange, random, sample
-import os
-import tempfile
-import csv
-import statistics
-import matplotlib.pyplot as plt 
-from collections import defaultdict
+# import csv
+# import statistics
+# import matplotlib.pyplot as plt 
+# from collections import defaultdict
 
     
 POP_SIZE = 100
@@ -168,69 +166,71 @@ def runGA(populationSize, crossoverRate, mutationRate, logFile="", run_id=""):
 
 if __name__ == '__main__':
     #Testing Code
-    # print("Test Suite")
-    # GAinspector.inspectFunction(randomGenome)
-    # GAinspector.inspectFunction(makePopulation)
-    # GAinspector.inspectFunction(fitness)
-    # GAinspector.inspectFunction(evaluateFitness)
-    # GAinspector.inspectFunction(crossover)
-    # GAinspector.inspectFunction(mutate)
-    # GAinspector.inspectFunction(selectPair)
-
-    picked = set(sample(range(N_RUNS), 5))
+    print("Test Suite")
+    GAinspector.inspectFunction(randomGenome)
+    GAinspector.inspectFunction(makePopulation)
+    GAinspector.inspectFunction(fitness)
+    GAinspector.inspectFunction(evaluateFitness)
+    GAinspector.inspectFunction(crossover)
+    GAinspector.inspectFunction(mutate)
+    GAinspector.inspectFunction(selectPair)
     
-    with open(CSV_PATH, "w", newline="") as out:
-        writer = csv.writer(out)
-        writer.writerow(["run_id", "generation", "avg_fitness", "best_fitness"])
+    # Code to run N_RUNS of the genetic algorithm and get a graph of the averages
+
+    # picked = set(sample(range(N_RUNS), 5))
+    
+    # with open(CSV_PATH, "w", newline="") as out:
+    #     writer = csv.writer(out)
+    #     writer.writerow(["run_id", "generation", "avg_fitness", "best_fitness"])
         
-    solutions = []
+    # solutions = []
     
-    for i in range(N_RUNS):
-        if i in picked:
-            sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE, logFile=CSV_PATH, run_id=i)
-        else:
-            sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE)
-        solutions.append(sol_gen)
+    # for i in range(N_RUNS):
+    #     if i in picked:
+    #         sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE, logFile=CSV_PATH, run_id=i)
+    #     else:
+    #         sol_gen = runGA(POP_SIZE, CROSS_RATE, MUTATION_RATE)
+    #     solutions.append(sol_gen)
     
-    valid_solutions = [s for s in solutions if s is not None]
-    avg_gen = statistics.mean(valid_solutions) if valid_solutions else None
-    min_gen = min(valid_solutions) if valid_solutions else None
-    max_gen = max(valid_solutions) if valid_solutions else None
+    # valid_solutions = [s for s in solutions if s is not None]
+    # avg_gen = statistics.mean(valid_solutions) if valid_solutions else None
+    # min_gen = min(valid_solutions) if valid_solutions else None
+    # max_gen = max(valid_solutions) if valid_solutions else None
     
-    print(f"Over {N_RUNS} runs (Population Size = {POP_SIZE}, Crossover Rate = {CROSS_RATE}, Mutation Rate = {MUTATION_RATE})")
-    print(f"Average generation found: {avg_gen}")
-    print(f"Min generation found: {min_gen}")
-    print(f"Max generation found: {max_gen}")
-    if len(valid_solutions) < N_RUNS:
-        print(f"{N_RUNS - len(valid_solutions)} runs did not reach all-ones within the cap")
+    # print(f"Over {N_RUNS} runs (Population Size = {POP_SIZE}, Crossover Rate = {CROSS_RATE}, Mutation Rate = {MUTATION_RATE})")
+    # print(f"Average generation found: {avg_gen}")
+    # print(f"Min generation found: {min_gen}")
+    # print(f"Max generation found: {max_gen}")
+    # if len(valid_solutions) < N_RUNS:
+    #     print(f"{N_RUNS - len(valid_solutions)} runs did not reach all-ones within the cap")
     
-    # Load CSV → group by run_id
-    series = defaultdict(lambda: {"gen": [], "avg": []})
+    # # Load CSV → group by run_id
+    # series = defaultdict(lambda: {"gen": [], "avg": []})
 
-    with open(CSV_PATH, newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            run_id = int(row["run_id"])
-            gen    = int(row["generation"])
-            avg    = float(row["avg_fitness"])
-            series[run_id]["gen"].append(gen)
-            series[run_id]["avg"].append(avg)
+    # with open(CSV_PATH, newline="") as f:
+    #     reader = csv.DictReader(f)
+    #     for row in reader:
+    #         run_id = int(row["run_id"])
+    #         gen    = int(row["generation"])
+    #         avg    = float(row["avg_fitness"])
+    #         series[run_id]["gen"].append(gen)
+    #         series[run_id]["avg"].append(avg)
 
-    # Sort each run’s points by generation (just in case)
-    for data in series.values():
-        zipped = sorted(zip(data["gen"], data["avg"]))
-        data["gen"], data["avg"] = map(list, zip(*zipped))
+    # # Sort each run’s points by generation (just in case)
+    # for data in series.values():
+    #     zipped = sorted(zip(data["gen"], data["avg"]))
+    #     data["gen"], data["avg"] = map(list, zip(*zipped))
 
-    # Plot: one line per run (matplotlib default colors/styles)
-    plt.figure()
-    for run_id in sorted(series.keys()):
-        plt.plot(series[run_id]["gen"], series[run_id]["avg"], label=f"Run {run_id}")
+    # # Plot: one line per run (matplotlib default colors/styles)
+    # plt.figure()
+    # for run_id in sorted(series.keys()):
+    #     plt.plot(series[run_id]["gen"], series[run_id]["avg"], label=f"Run {run_id}")
 
-    plt.xlabel("Generation")
-    plt.ylabel("Average fitness")
-    plt.title("GA: Average fitness over time (5 randomly selected runs)")
-    plt.legend()
-    plt.tight_layout()
-    plt.grid(True)
-    plt.savefig(PNG_OUT, dpi=200)
-    plt.show()
+    # plt.xlabel("Generation")
+    # plt.ylabel("Average fitness")
+    # plt.title("GA: Average fitness over time (5 randomly selected runs)")
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.grid(True)
+    # plt.savefig(PNG_OUT, dpi=200)
+    # plt.show()
